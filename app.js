@@ -1,7 +1,7 @@
 const express = require("express");
 const app = express();
 const mongoose = require("mongoose");
-const Student = require("./models/student.js");
+const Student = require("./models/student");
 
 mongoose
     .connect("mongodb://127.0.0.1/exampleDB")
@@ -53,7 +53,70 @@ app.post("/students", async (req, res) => {
             savedObject: savedStudent,
         });
     } catch (e) {
-        return res.status(500).send("儲存資料時發生錯誤");
+        return res.status(400).send(e.message);
+    }
+});
+
+app.put("/students/:_id", async (req, res) => {
+    try {
+        let { _id } = req.params;
+        let { name, age, major, merit, other } = req.body;
+        let newData = await Student.findOneAndUpdate(
+            { _id },
+            { name, age, major, scholarship: { merit, other } },
+            {
+                new: true,
+                runValidators: true,
+                overwrite: true,
+                // 因為HTTP PUT request要求client提供所有數據，
+                // 所以我們需要根據client所提供的數據，來更新db內的資料
+            }
+        );
+
+        res.send({ msg: "成功更新學生資料！", updatedData: newData });
+    } catch (e) {
+        res.status(400).send(e);
+    }
+});
+
+class NewData {
+    constructor() {}
+    setProperty(key, value) {
+        if (key !== "merit" && key !== "other") {
+            this[key] = value;
+        } else {
+            this[`scholarship.${key}`] = value;
+        }
+    }
+}
+
+app.patch("/students/:_id", async (req, res) => {
+    try {
+        let { _id } = req.params;
+        let newObject = new NewData();
+        for (let property in req.body) {
+            newObject.setProperty(property, req.body[property]);
+        }
+
+        let newData = await Student.findByIdAndUpdate({ _id }, newObject, {
+            new: true,
+            runValidators: true,
+            // 這裡不可以寫overwrite: true，因為newObject會被覆蓋掉！
+            // 沒有寫才會選擇性的蓋掉
+        });
+        res.send({ msg: "成功更新學生資料!", updatedData: newData });
+    } catch (e) {
+        res.status(400).send(e);
+    }
+});
+
+app.delete("/students/:_id", async (req, res) => {
+    try {
+        let { _id } = req.params;
+        let deleteResult = await Student.deleteOne({ _id });
+        console.log(deleteResult);
+    } catch (e) {
+        res.status(500).send("無法刪除學生資料");
     }
 });
 

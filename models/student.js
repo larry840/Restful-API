@@ -10,7 +10,8 @@ const studentSchema = new Schema({
     age: {
         type: Number,
         default: 18,
-        max: [80, "太老了"],
+        max: [80, "年紀太大了"],
+        min: [0, "年齡不得小於0"],
     },
     scholarship: {
         merit: {
