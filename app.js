@@ -19,19 +19,27 @@ app.use(express.urlencoded({ extended: true }));
 app.get("/students", async (req, res) => {
     try {
         let studentData = await Student.find().exec();
-        return res.send(studentData);
+        return res.render("students", { studentData });
     } catch (e) {
         return res.status(500).send("尋找資料時發生錯誤");
     }
+});
+
+app.get("/students/new", (req, res) => {
+    return res.render("new-student-form");
 });
 
 app.get("/students/:_id", async (req, res) => {
     let { _id } = req.params;
     try {
         let foundStudent = await Student.findOne({ _id }).exec();
-        return res.send(foundStudent);
+        if (foundStudent != null) {
+            return res.render("student-page", { foundStudent });
+        } else {
+            return res.status(400).render("student-not-found");
+        }
     } catch (e) {
-        return res.status(500).send("尋找資料時發生錯誤");
+        return res.status(400).render("student-not-found");
     }
 });
 
@@ -48,12 +56,9 @@ app.post("/students", async (req, res) => {
             },
         });
         let savedStudent = await newStudent.save();
-        return res.send({
-            msg: "資料儲存成功",
-            savedObject: savedStudent,
-        });
+        return res.render("student-save-success", { savedStudent });
     } catch (e) {
-        return res.status(400).send(e.message);
+        return res.status(400).render("student-save-fail");
     }
 });
 
@@ -75,7 +80,7 @@ app.put("/students/:_id", async (req, res) => {
 
         res.send({ msg: "成功更新學生資料！", updatedData: newData });
     } catch (e) {
-        res.status(400).send(e);
+        return res.status(400).send(e.message);
     }
 });
 
@@ -106,7 +111,7 @@ app.patch("/students/:_id", async (req, res) => {
         });
         res.send({ msg: "成功更新學生資料!", updatedData: newData });
     } catch (e) {
-        res.status(400).send(e);
+        return res.status(400).send(e.message);
     }
 });
 
@@ -114,9 +119,9 @@ app.delete("/students/:_id", async (req, res) => {
     try {
         let { _id } = req.params;
         let deleteResult = await Student.deleteOne({ _id });
-        console.log(deleteResult);
+        return res.send(deleteResult);
     } catch (e) {
-        res.status(500).send("無法刪除學生資料");
+        return res.status(500).send("無法刪除學生資料");
     }
 });
 
